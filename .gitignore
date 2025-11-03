@@ -205,3 +205,5 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+model/Meta-Llama-3-8B-Instruct.Q4_K_S.gguf
