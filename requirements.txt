@@ -6,4 +6,4 @@ langchain-pinecone
 langchain
 flask
 pypdf
-huggingface-hub
+-e .
