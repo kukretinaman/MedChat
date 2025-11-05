@@ -1,6 +1,9 @@
 ctransformers
 sentence-transformers
 pinecone
+langchain-community
+langchain-pinecone
 langchain
 flask
-pypdf2
+pypdf
+huggingface-hub
