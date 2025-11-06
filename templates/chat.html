@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stylish Flask Chatbot</title>
+  <style>
+    :root{
+      --bg:#0f1724; /* deep navy */
+      --card:#0b1220;
+      --muted:#94a3b8;
+      --accent:#7c3aed; /* violet */
+      --accent-2:#06b6d4; /* teal */
+      --glass: rgba(255,255,255,0.04);
+      --radius:14px;
+      --max-width:920px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Segoe UI Mono', monospace;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.12), transparent),
+                  radial-gradient(900px 400px at 90% 90%, rgba(6,182,212,0.06), transparent),
+                  var(--bg);
+      color: #e6eef8;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px;
+    }
+
+    .chat-shell{
+      width:100%;
+      max-width:var(--max-width);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:18px;
+      padding:20px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      display:grid;
+      grid-template-columns:320px 1fr;
+      gap:18px;
+      min-height:580px;
+      backdrop-filter: blur(6px) saturate(120%);
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    /* Left panel: models / conversations */
+    .sidebar{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius:12px;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      min-height:300px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:10px;padding-bottom:6px;border-bottom:1px dashed rgba(255,255,255,0.03);
+    }
+    .logo{
+      width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      display:flex;align-items:center;justify-content:center;font-weight:700;font-family:var(--mono);
+      box-shadow:0 6px 16px rgba(124,58,237,0.16);
+    }
+    .brand h1{font-size:15px;margin:0}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+    .conversations{overflow:auto;padding-right:6px;}
+    .conv{display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer;transition:all .18s ease;background:transparent}
+    .conv:hover{transform:translateY(-4px);background:var(--glass)}
+    .conv .dot{width:8px;height:8px;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));box-shadow:0 4px 10px rgba(6,182,212,0.08)}
+    .conv .meta{font-size:13px;color:#dce9ff}
+    .conv small{display:block;color:var(--muted);font-size:12px}
+
+    /* main chat area */
+    .chat-area{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;padding:12px;display:flex;flex-direction:column;overflow:hidden;
+    }
+    .chat-header{display:flex;align-items:center;gap:12px;padding:8px 10px;border-bottom:1px dashed rgba(255,255,255,0.03)}
+    .chat-header h2{margin:0;font-size:16px}
+    .chat-log{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+
+    .bubble{
+      max-width:72%;padding:12px 14px;border-radius:14px;line-height:1.35;font-size:14px;white-space:pre-wrap;
+      box-shadow:0 6px 18px rgba(2,6,23,0.45);
+    }
+    .bubble.user{align-self:flex-end;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));color:#dbeafe;border:1px solid rgba(255,255,255,0.03);border-bottom-right-radius:6px}
+    .bubble.bot{align-self:flex-start;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:white;border-bottom-left-radius:6px}
+
+    .typing{display:inline-block;height:10px;width:36px;border-radius:10px;background:rgba(255,255,255,0.18);position:relative;overflow:hidden}
+    .typing::before{content:'';position:absolute;left:-30px;width:18px;height:10px;background:rgba(255,255,255,0.32);border-radius:10px;animation:typing 1.2s linear infinite}
+    @keyframes typing{to{left:100%}}
+
+    .composer{display:flex;gap:10px;padding:12px;border-top:1px dashed rgba(255,255,255,0.03);align-items:center}
+    .input-wrap{flex:1;display:flex;align-items:center;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);padding:8px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    textarea#prompt{width:100%;resize:none;border:0;background:transparent;color:inherit;padding:8px 6px;font-size:14px;min-height:46px;outline:none}
+    button.send{background:linear-gradient(90deg,var(--accent),var(--accent-2));border:0;padding:10px 14px;border-radius:10px;color:white;font-weight:600;cursor:pointer;box-shadow:0 10px 26px rgba(124,58,237,0.16);transition:transform .12s ease}
+    button.send:active{transform:translateY(2px)}
+
+    .meta-row{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px}
+
+    /* small screens */
+    @media (max-width:880px){
+      .chat-shell{grid-template-columns:1fr;min-height:640px}
+      .sidebar{order:2}
+      .chat-area{order:1}
+    }
+
+  </style>
+</head>
+<body>
+  <div class="chat-shell" role="application">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">CB</div>
+        <div>
+          <h1>MedChat</h1>
+          <p>Friendly Medical Chatbot</p>
+        </div>
+      </div>
+
+      <div class="conversations" id="conversations">
+        <div class="conv"><div class="dot"></div><div class="meta">General <small>Casual assistant</small></div></div>
+        <div class="conv"><div class="dot"></div><div class="meta">Tech help <small>Debugging & code</small></div></div>
+        <div class="conv"><div class="dot"></div><div class="meta">Ideas <small>Brainstorm</small></div></div>
+      </div>
+    </aside>
+
+    <main class="chat-area" aria-live="polite">
+      <div class="chat-header">
+        <h2>MedChat - Your Friendly Medical Chatbot</h2>
+        <div style="margin-left:auto" class="meta-row">Status: <span id="status" style="margin-left:8px">idle</span></div>
+      </div>
+
+      <div class="chat-log" id="chatLog">
+        <div class="bubble bot">Hi — I'm your assistant. Ask me anything.</div>
+      </div>
+
+      <form id="composer" class="composer" onsubmit="return false;">
+        <div class="input-wrap">
+          <textarea id="prompt" placeholder="Type a message..." rows="1"></textarea>
+        </div>
+        <button class="send" id="send">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    const chatLog = document.getElementById('chatLog');
+    const prompt = document.getElementById('prompt');
+    const sendBtn = document.getElementById('send');
+    const status = document.getElementById('status');
+
+    function appendBubble(text, who='bot'){
+      const d = document.createElement('div');
+      d.className = 'bubble ' + (who === 'user' ? 'user' : 'bot');
+      d.textContent = text;
+      chatLog.appendChild(d);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+
+    function setStatus(s){status.textContent = s}
+
+    async function send(){
+      const text = prompt.value.trim();
+      if(!text) return;
+      appendBubble(text,'user');
+      prompt.value = '';
+      setStatus('sending...');
+
+      // temporary typing indicator
+      const typing = document.createElement('div');
+      typing.className = 'bubble bot';
+      typing.innerHTML = '<span class="typing"></span>';
+      chatLog.appendChild(typing);
+      chatLog.scrollTop = chatLog.scrollHeight;
+
+      try{
+        const resp = await fetch('/chat', {
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({message: text})
+        });
+        if(!resp.ok) throw new Error('Network response was not ok');
+        const data = await resp.json();
+        typing.remove();
+        appendBubble(data.reply || "(no reply)",'bot');
+        setStatus('idle');
+      }catch(err){
+        typing.remove();
+        appendBubble('Error: ' + (err.message || err),'bot');
+        setStatus('error');
+      }
+    }
+
+    sendBtn.addEventListener('click', send);
+    prompt.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault(); send();
+      }
+    });
+  </script>
+</body>
+</html>
